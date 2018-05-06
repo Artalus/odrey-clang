@@ -1,0 +1,32 @@
+add_executable(odrey
+	main.cpp
+	odr_decl_traverser.h
+	odr_decl_traverser.cpp
+	odr.h
+	odr.cpp
+	odr_tool.h
+	odr_tool.cpp)
+
+target_link_libraries(odrey
+	clangFrontendTool
+	clangFrontend
+	clangDriver
+	clangSerialization
+	clangParse
+	clangSema
+	clangStaticAnalyzerFrontend
+	clangStaticAnalyzerCheckers
+	clangStaticAnalyzerCore
+	clangAnalysis
+	clangRewrite
+	clangEdit
+	clangAST
+	clangASTMatchers
+	clangLex
+	clangBasic
+	clangRewriteFrontend
+	clangToolingCore
+	clangTooling
+	clangFormat
+	LLVM
+)
