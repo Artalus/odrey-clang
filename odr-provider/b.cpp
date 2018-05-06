@@ -1,6 +1,12 @@
 #include "b.h"
 #include <iostream>
 
+namespace b {
+    struct SameNameInDifferentNamespace {
+		double a,b;
+	};
+}
+
 namespace {
 struct InNamespaceClass {
 	int x;
@@ -36,12 +42,16 @@ struct ViolationClass {
 
 using ViolatingAlias = std::string;
 class SubtleViolationClass {
-	ViolatingAlias x;
 public:
-	ViolatingAlias fun() { return x; }
+	ViolatingAlias x;
+	void fun() { std::cout << x << '\n'; }
 };
 
 void b_func() {
+	SubtleViolationClass s;
+	s.x = "abc abc";
+	s.fun();
+
 	ViolationClass d;
 	std::cout << "another ViolationClass in b\n";
 	std::cout << d.f << '\n' << d.ff << '\n' << d.fff << '\n';

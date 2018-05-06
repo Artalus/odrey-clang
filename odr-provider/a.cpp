@@ -12,6 +12,12 @@ int in_namespace_different_function(float x) {
 
 }
 
+namespace a {
+    struct SameNameInDifferentNamespace {
+		int x;
+	};
+}
+
 class ClassOnlyInA {
 	int x;
 	double d;
@@ -37,14 +43,18 @@ struct ViolationClass {
 	}
 };
 
-using ViolatingAlias = int;
+using ViolatingAlias = float;
 class SubtleViolationClass {
-	ViolatingAlias x;
 public:
-	ViolatingAlias fun() { return x; }
+	ViolatingAlias x;
+	void fun() { std::cout << x << '\n'; }
 };
 
 void a_func() {
+	SubtleViolationClass s;
+	s.x = 88.8f;
+	s.fun();
+
 	ViolationClass d;
 	std::cout << "ViolationClass in a\n";
 	std::cout << d.f << '\n' << d.ff << '\n' << d.fff << '\n';
