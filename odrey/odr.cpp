@@ -1,7 +1,7 @@
 #include "odr.h"
 
-#include <iostream>
 #include <iterator>
+#include <sstream>
 
 namespace  {
 
@@ -10,6 +10,28 @@ auto negate(Callable func) {
 	return [func](auto&&...x)->bool { return !func(x...); };
 }
 
+void report(llvm::raw_ostream &target, bool silence_multiple, const std::string &name, std::list<PrimaryEntry> &definitions) {
+	constexpr unsigned INDENT = sizeof("ODR-1337:");
+	auto start = begin(definitions);
+	auto &first = *start;
+	std::advance(start,1);
+	auto equal_end = std::partition(start, end(definitions),
+	    [&first](const PrimaryEntry &e) { return !e.equal_by_body_text(first); });
+	using C = llvm::raw_ostream::Colors;
+	if (equal_end != start) {
+		target.changeColor(C::RED, true) << "ODR-1337: ";
+		target.changeColor(C::CYAN, true) << name;
+		target.changeColor(C::WHITE, true) << " has varying definitions:\n";
+		for (auto i = begin(definitions); i != equal_end; ++i)
+			target.indent(INDENT).changeColor(C::WHITE) << i->location << "\n";
+	} else if (!silence_multiple && definitions.size() > 1) {
+		target.changeColor(C::MAGENTA, true) << "ODR-1336: ";
+		target.changeColor(C::CYAN, true) << name;
+		target.changeColor(C::WHITE, true) << " has multiple definitions, consider unifying those in a single header:\n";
+		for (auto &d : definitions)
+			target.indent(INDENT).changeColor(C::WHITE) << d.location << "\n";
+	}
+}
 }
 
 template<> std::unique_ptr<Body> make_body<clang::RecordDecl>(const clang::RecordDecl* r) {
@@ -28,15 +50,8 @@ void OdrMap::transform_entries() {
 	}
 }
 
-void OdrMap::report_duplicates() {
+void OdrMap::report_duplicates(llvm::raw_ostream &target, bool silence_multiple) {
 	for (auto &p : name_to_definition) {
-		auto &name = p.first;
-		auto &definitions = p.second;
-		auto f = std::adjacent_find(begin(definitions), end(definitions), negate(PrimaryEntry::equal_by_body{}));
-		if ( f != end(definitions) ) {
-			auto f1 = f;
-			std::advance(f1,1);
-			std::cout << name << " collision:\n  " << f->location << "\n  " << f1->location << "\n";
-		}
+		report(target, silence_multiple, p.first, p.second);
 	}
 }

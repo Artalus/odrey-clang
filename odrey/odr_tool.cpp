@@ -1,7 +1,5 @@
 #include "odr_tool.h"
 
-#include <iostream>
-
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 
 
@@ -50,7 +48,7 @@ int OdrTool::apply_check()
 //		std::cout << x;
 
 	map.transform_entries();
-	map.report_duplicates();
+	map.report_duplicates(llvm::errs());
 
 	return 0;
 }

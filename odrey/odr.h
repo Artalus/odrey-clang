@@ -5,9 +5,9 @@
 
 
 struct Body {
-	const std::string body;
+	const std::string text;
 	Body(const clang::Decl *d)
-	    :body(to_str(d))
+	    :text(to_str(d))
 	{}
 	virtual ~Body() = default;
 	virtual std::string_view type() const = 0;
@@ -44,25 +44,27 @@ struct PrimaryEntry {
 	    , body(make_body(d))
 	{}
 	PrimaryEntry(const PrimaryEntry&) = delete;
-	PrimaryEntry(PrimaryEntry &&rhs) = default;
+	PrimaryEntry(PrimaryEntry &&) = default;
+	PrimaryEntry& operator=(PrimaryEntry &&) = default;
 
 	struct less_by_location {
 		bool operator()(const PrimaryEntry& lhs, const PrimaryEntry &rhs) const {
 			return lhs.location < rhs.location;
 		}
 	};
-	struct equal_by_body {
-		bool operator()(const PrimaryEntry& lhs, const PrimaryEntry &rhs) const {
-			return lhs.body->body == rhs.body->body;
-		}
-	};
+	bool equal_by_body_text(const PrimaryEntry &rhs) const {
+		return body->text == rhs.body->text;
+	}
+	static bool equal_by_body_text(const PrimaryEntry& lhs, const PrimaryEntry &rhs) {
+		return lhs.equal_by_body_text(rhs);
+	}
 };
 
 inline std::ostream& operator<<(std::ostream &s, const PrimaryEntry &x) {
 	s << x.location << ": "<< x.name
 	         << " ("<< x.body->type() <<")"
 	         "\n"
-	         << x.body->body << "\n";
+	         << x.body->text << "\n";
 	return s;
 }
 
@@ -74,7 +76,7 @@ struct OdrMap {
 
 	void transform_entries();
 
-	void report_duplicates();
+	void report_duplicates(llvm::raw_ostream &target, bool silence_multiple=false);
 
 	std::set<PrimaryEntry, PrimaryEntry::less_by_location> entries_by_line;
 	std::map<std::string, std::list<PrimaryEntry>> name_to_definition;
