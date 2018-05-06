@@ -2,13 +2,24 @@
 #include <set>
 
 #include <clang/AST/Decl.h>
+#include <clang/AST/ASTContext.h>
+#include <clang/AST/Stmt.h>
 
 
 struct Body {
-	const std::string text;
-	Body(const clang::Decl *d)
-	    :text(to_str(d))
-	{}
+	std::string text;
+	clang::Stmt* body_statement;
+	clang::ASTContext &ast_context;
+	Body(const clang::Decl *d, clang::Stmt* stmt)
+	    : text(to_str(d))
+	    , body_statement(stmt)
+	    , ast_context(d->getASTContext())
+	{
+	clang::Stmt::StmtClass sc1{};
+	if (stmt)
+		sc1 = stmt->getStmtClass();
+	int x = 0;
+	x *= 2;}
 	virtual ~Body() = default;
 	virtual std::string_view type() const = 0;
 
@@ -18,14 +29,18 @@ struct Body {
 		d->print(writer, 2);
 		return result;
 	}
+
+	bool equal_to(const Body& rhs);
 };
 
 struct Function : Body {
-	Function(const clang::FunctionDecl *f) : Body(f) {}
+	const clang::FunctionDecl* f;
+	Function(const clang::FunctionDecl *f) : Body(f, f->getBody()), f(f) {}
 	std::string_view type() const override { return "function"; }
 };
 struct Record : Body{
-	Record(const clang::RecordDecl *r) : Body(r) {}
+	const clang::RecordDecl* r;
+	Record(const clang::RecordDecl *r) : Body(r, r->getBody()), r(r) {}
 	std::string_view type() const override { return "record"; }
 };
 
@@ -56,6 +71,13 @@ struct PrimaryEntry {
 		return body->text == rhs.body->text;
 	}
 	static bool equal_by_body_text(const PrimaryEntry& lhs, const PrimaryEntry &rhs) {
+		return lhs.equal_by_body_text(rhs);
+	}
+
+	bool equal_by_body_statement(const PrimaryEntry &rhs) const {
+		return body->equal_to(*rhs.body);
+	}
+	static bool equal_by_body_statement(const PrimaryEntry& lhs, const PrimaryEntry &rhs) {
 		return lhs.equal_by_body_text(rhs);
 	}
 };
