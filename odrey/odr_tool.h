@@ -22,4 +22,5 @@ private:
 	std::unique_ptr<clang::tooling::ClangTool> tool;
 
 	OdrMap map;
+	OdrActionFactory odrFactory{map};
 };

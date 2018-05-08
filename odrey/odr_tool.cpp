@@ -18,17 +18,9 @@ OdrTool::OdrTool(std::string db_path, std::vector<std::string> input_filenames) 
 	tool = std::make_unique<ClangTool>(*db, source_files);
 }
 
-
 int OdrTool::check()
 {
-	OdrRecordTraverser record_handler(map);
-	OdrFunctionTraverser function_handler(map);
-
-	ast_matchers::MatchFinder finder;
-	finder.addMatcher(ast_matchers::recordDecl().bind(OdrDeclTraverser::bind_names::rec), &record_handler);
-	finder.addMatcher(ast_matchers::functionDecl().bind(OdrDeclTraverser::bind_names::func), &function_handler);
-
-	if (int result = tool->run(newFrontendActionFactory(&finder).get()))
+	if (int result = tool->run(&odrFactory))
 		throw std::runtime_error("tool.run() returned " + std::to_string(result) + "\n");
 
 	return apply_check();

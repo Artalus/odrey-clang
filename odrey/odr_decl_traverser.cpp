@@ -12,17 +12,17 @@ using namespace clang::ast_matchers;
 namespace {
 
 template<class DeclType>
-void parse(const DeclType* rec, OdrMap &map, const SourceManager *sm, void *addr) {
+void parse(const DeclType* rec, OdrMap &map, const SourceManager &sm, void *addr) {
 	SourceLocation rec_pos = rec->getLocStart();
 
-	if (sm->isInExternCSystemHeader(rec_pos) || sm->isInSystemHeader(rec_pos))
+	if (sm.isInExternCSystemHeader(rec_pos) || sm.isInSystemHeader(rec_pos))
 		return;
 
 	if (rec->isInAnonymousNamespace())
 		return;
 
 
-	map.emplace(rec_pos.printToString(*sm),
+	map.emplace(rec_pos.printToString(sm),
 	            rec->getQualifiedNameAsString(),
 	            rec);
 }
@@ -35,23 +35,34 @@ bool isMethodOfClass(const FunctionDecl *fun) {
 	        || kind == K::CXXMethod;
 }
 
+bool strEndsWith(const std::string& str, const std::string &ends) {
+	auto slen = str.length();
+	auto elen = ends.length();
+	if (slen < elen)
+		return false;
+	return (str.compare(slen - elen, elen, ends) == 0);
 }
 
-void OdrRecordTraverser::run(const MatchFinder::MatchResult &result) {
-	auto *sm = result.SourceManager;
-	if (const auto* rec = result.Nodes.getNodeAs<RecordDecl>(bind_names::rec)) {
-		if (rec->isCompleteDefinition())
-			return parse(rec, map, sm, rec->getDefinition());
-	}
 }
 
-void OdrFunctionTraverser::run(const MatchFinder::MatchResult &result) {
-	auto *sm = result.SourceManager;
-	if (const auto* fun = result.Nodes.getNodeAs<FunctionDecl>(bind_names::func)) {
-		if (fun->doesThisDeclarationHaveABody()
-		        && fun->isInlined()
-		        && !fun->isConstexpr())
-			return parse(fun, map, sm, fun->getBody());
-	}
+bool OdrVisitor::VisitFunctionDecl(FunctionDecl *fun) {
+	if (fun->doesThisDeclarationHaveABody()
+			&& fun->isInlined()
+			&& !fun->isConstexpr()
+			&& !strEndsWith(fun->getQualifiedNameAsString(), "(anonymous struct)::")
+		)
+		parse(fun, map, sourceManager, fun->getBody());
+	return true;
+}
 
+bool OdrVisitor::VisitStmt(clang::Stmt *st) {
+	return true;
+}
+
+bool OdrVisitor::VisitRecordDecl(RecordDecl *rec) {
+	if (rec->isCompleteDefinition()
+		&& !strEndsWith(rec->getQualifiedNameAsString(), "(anonymous)")
+		)
+		parse(rec, map, sourceManager, rec->getDefinition());
+	return true;
 }
