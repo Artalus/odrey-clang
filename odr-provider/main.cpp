@@ -11,6 +11,13 @@ inline int violation_func() {
 	return 1;
 }
 
+struct {
+	int x;
+} ok_anonymous_struct;
+struct {
+	int x;
+} ok_another_anonymous_struct;
+
 int main()
 {
 	a_func();
